@@ -11,8 +11,8 @@ from sklearn.feature_selection import SelectKBest, f_classif
 from sklearn.pipeline import Pipeline
 from sklearn.ensemble import RandomForestClassifier
 
-# Set environment variable to avoid "OMP: Error #15: Initializing libiomp5md.dll, but found libiomp5md.dll already initialized."
-os.environ['KMP_DUPLICATE_LIB_OK'] = 'TRUE'
+# Disable memory profiling
+os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
 
 # Assuming CUDA is available, if not, this will fall back to CPU
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -20,13 +20,17 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 # Step 1: Load the dataset
 file_path = r'C:\Users\rodyj\Documents\data\conn.log.labelled.txt'
 try:
-    data = pd.read_csv(file_path)
+    # Specify dtype option to suppress DtypeWarning for mixed types
+    data = pd.read_csv(file_path, sep='\t', skiprows=6, low_memory=False, dtype=str)  # Set the separator as '\t' and skip header rows
 except FileNotFoundError:
     print(f"Error: File '{file_path}' not found.")
     exit(1)  # Exit the script if file not found
+    
+# Print column names again to verify the drop operation
+print(data.columns)
 
 # Extracting features
-X_text = data['history'].values  # Assuming 'history' column contains text data
+X_text = data.drop(columns=['label', 'detailed-label']).values  # Exclude 'label' and 'detailed-label' columns
 y = data['label'].values  # Labels
 
 # Convert text data to numerical features using CountVectorizer
@@ -60,11 +64,11 @@ pipeline.fit(X_train, y_train)
 X_train_selected = pipeline.named_steps['feature_selector'].transform(X_train)
 X_test_selected = pipeline.named_steps['feature_selector'].transform(X_test)
 
-# Convert NumPy arrays to PyTorch tensors
-X_train_selected = torch.tensor(X_train_selected, dtype=torch.float32)
-X_test_selected = torch.tensor(X_test_selected, dtype=torch.float32)
-y_train = torch.tensor(y_train, dtype=torch.long)
-y_test = torch.tensor(y_test, dtype=torch.long)
+# Convert NumPy arrays to PyTorch tensors and move them to the GPU if available
+X_train_selected = torch.tensor(X_train_selected, dtype=torch.float32).to(device)
+X_test_selected = torch.tensor(X_test_selected, dtype=torch.float32).to(device)
+y_train = torch.tensor(y_train, dtype=torch.long).to(device)
+y_test = torch.tensor(y_test, dtype=torch.long).to(device)
 
 # Step 4: Define the neural network architecture
 class NeuralNet(nn.Module):
@@ -80,9 +84,9 @@ class NeuralNet(nn.Module):
         x = torch.sigmoid(self.fc3(x))
         return x
 
-# Initialize the model
+# Initialize the model and move it to the GPU if available
 input_size = X_train_selected.shape[1]
-model = NeuralNet(input_size)
+model = NeuralNet(input_size).to(device)
 
 # Step 5: Define the loss function and optimizer
 criterion = nn.CrossEntropyLoss()
