@@ -1,50 +1,67 @@
-IoT Network Traffic Classification
 
-This project focuses on classifying IoT network traffic into benign and malicious categories using machine learning techniques, specifically a combination of feature selection, preprocessing, and deep learning.
-Dataset
+# IoT Network Traffic Classification
 
-The dataset used in this project is con.log.labelled, which contains labeled IoT network traffic data. The dataset is expected to be in CSV format and should have two columns: feature containing the textual features of network traffic and label containing the corresponding labels (benign or malicious).
-Requirements
+This project focuses on classifying IoT network traffic into benign and malicious categories using machine learning techniques, including feature selection, preprocessing, and deep learning models implemented in both TensorFlow and PyTorch.
 
-    Python 3
-    Libraries:
-        pandas
-        scikit-learn
-        TensorFlow
-        numpy
+## Dataset
 
-Installation
+The dataset used in this project is `conn.log.labelled`, which contains labeled IoT network traffic data. The dataset is expected to be in CSV format and should include a variety of network traffic features with corresponding labels (benign or malicious).
 
-    Clone this repository:
+## Requirements
 
-    bash
+- Python 3
+- Libraries:
+  - pandas
+  - scikit-learn
+  - TensorFlow
+  - PyTorch
+  - numpy
 
+## Installation
+
+Clone this repository:
+```bash
 git clone https://github.com/99004894rj/mcse_module08.git
+```
 
 Navigate to the project directory:
-
-bash
-
+```bash
 cd mcse_module08
+```
 
 Install the required libraries:
+```bash
+pip install -r requirements.txt
+```
 
-bash
+## Usage
 
-    pip install -r requirements.txt
+Place your dataset file (`conn.log.labelled`) in the project directory.
 
-Usage
+To check CUDA availability on your machine, you can run the following script:
+```bash
+python check_cuda.py
+```
 
-    Place your dataset file (con.log.labelled) in the project directory.
+To check the column consistency of your dataset, use:
+```bash
+python check_columns.py
+```
 
-    Run the cnn.py script:
+### TensorFlow Model
+Run the `cnn_tensorflow.py` script to train a Convolutional Neural Network (CNN) model using TensorFlow on the dataset and evaluate its performance:
+```bash
+python cnn_tensorflow.py
+```
 
-    bash
+### PyTorch Model
+Run the `cnn_pytorch.py` script to train a similar CNN model using PyTorch:
+```bash
+python cnn_pytorch.py
+```
 
-    python cnn.py
+This will train the model on the dataset and evaluate its performance, printing the accuracy and loss metrics.
 
-    This will train a Convolutional Neural Network (CNN) model on the dataset and evaluate its performance.
-
-License
+## License
 
 This project is licensed under the GNU General Public License v3.0 - see the LICENSE file for details.
