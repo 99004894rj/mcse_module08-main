@@ -5,7 +5,7 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import TensorDataset, DataLoader
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import LabelEncoder, StandardScaler
+from sklearn.preprocessing import LabelEncoder
 from sklearn.feature_extraction.text import CountVectorizer
 from scipy.sparse import csr_matrix
 
@@ -35,41 +35,45 @@ y = data['label'] if 'label' in data.columns else np.zeros(data.shape[0])  # Cre
 
 # Convert text data to numerical features using CountVectorizer
 print("Converting text data to numerical features...")
-vectorizer = CountVectorizer()
+vectorizer = CountVectorizer(min_df=0.01, max_df=0.95, max_features=10000)
 X = vectorizer.fit_transform(X_text.apply(lambda x: ' '.join(x), axis=1))
 
-# Check the shapes to ensure consistency
-print(f"Shape of X: {X.shape}")
-print(f"Shape of y: {len(y)}")
-
-# Scale numerical features
-print("Scaling numerical features...")
-scaler = StandardScaler(with_mean=False)  # Important for sparse matrix compatibility
-X = scaler.fit_transform(X)
-
-# Convert to dense numpy arrays (necessary for conversion to tensors)
-X = X.toarray()
+# Convert Scipy sparse matrix to PyTorch sparse tensor
+print("Converting to PyTorch sparse tensor...")
+X_coo = X.tocoo()
+values = torch.tensor(X_coo.data, dtype=torch.float32)
+indices = torch.tensor(np.vstack((X_coo.row, X_coo.col)), dtype=torch.long)
+shape = torch.Size(X_coo.shape)
+X_tensor = torch.sparse_coo_tensor(indices, values, shape).to(device)
 
 # Encode labels
 print("Encoding labels...")
 label_encoder = LabelEncoder()
 y = label_encoder.fit_transform(y)
-
-# Convert arrays to PyTorch tensors
-X_tensor = torch.tensor(X, dtype=torch.float32).to(device)
 y_tensor = torch.tensor(y, dtype=torch.long).to(device)
 
 # Step 3: Split the dataset into training and testing sets
 print("Splitting the dataset into training and testing sets...")
-X_train, X_test, y_train, y_test = train_test_split(X_tensor, y_tensor, test_size=0.2, random_state=42)
+indices = np.arange(X_tensor.shape[0])
+train_indices, test_indices = train_test_split(indices, test_size=0.2, random_state=42)
+X_train = X_tensor.index_select(0, torch.tensor(train_indices, dtype=torch.long).to(device))
+y_train = y_tensor.index_select(0, torch.tensor(train_indices, dtype=torch.long).to(device))
+X_test = X_tensor.index_select(0, torch.tensor(test_indices, dtype=torch.long).to(device))
+y_test = y_tensor.index_select(0, torch.tensor(test_indices, dtype=torch.long).to(device))
+
+# Custom collate function for handling sparse tensors
+def custom_collate(batch):
+    data = [item[0] for item in batch]
+    targets = [item[1] for item in batch]
+    return torch.stack(data), torch.tensor(targets)
 
 # Create TensorDatasets and DataLoaders
 train_dataset = TensorDataset(X_train, y_train)
 test_dataset = TensorDataset(X_test, y_test)
 
 batch_size = 32
-train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
+train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, collate_fn=custom_collate)
+test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, collate_fn=custom_collate)
 
 # Step 4: Define the neural network architecture using PyTorch
 print("Defining the neural network architecture...")
