@@ -1,7 +1,7 @@
 import pandas as pd
 
 # Load the dataset
-file_path = r'C:\Users\rodyj\Documents\data\conn.log.labelled.txt'
+file_path = r'D:\IOT\conn.log.labelled.txt'
 try:
     data = pd.read_csv(file_path, sep='\t', skiprows=6)  # Set the separator as '\t' and skip the first 6 rows
 except FileNotFoundError:

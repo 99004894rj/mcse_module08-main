@@ -14,7 +14,7 @@ if gpus:
         print(e)
 
 # Step 1: Load the dataset
-file_path = r'C:\Users\rodyj\Documents\data\conn.log.labelled.txt'
+file_path = r'D:\IOT\conn.log.labelled.txt'
 print("Loading dataset...")
 data = pd.read_csv(file_path, sep='\t', comment='#', header=None, low_memory=False, dtype=str)
 
