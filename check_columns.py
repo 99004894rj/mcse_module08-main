@@ -9,5 +9,5 @@ except FileNotFoundError:
     exit(1)  # Exit the script if file not found
 
 # Print the first few rows and data types of each column
-print(data.head())
+print(data.head(25))
 print(data.dtypes)
