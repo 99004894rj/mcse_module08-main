@@ -13,32 +13,30 @@ from scipy.sparse import csr_matrix
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print("Using device:", device)
 
-# Step 1: Load the dataset
-file_path = r'D:\IOT\conn.log.labelled.txt'
+# Load the dataset
+file_path = '/path/to/your/dataset.txt'  # Update your path
 print("Loading dataset...")
 data = pd.read_csv(file_path, sep='\t', comment='#', header=None, low_memory=False, dtype=str, nrows=250000)
 
 # Define column names
 columns = ['ts', 'uid', 'id.orig_h', 'id.orig_p', 'id.resp_h', 'id.resp_p', 'proto', 'service', 'duration',
            'orig_bytes', 'resp_bytes', 'conn_state', 'local_orig', 'local_resp', 'missed_bytes', 'history',
-           'orig_pkts', 'orig_ip_bytes', 'resp_pkts', 'resp_ip_bytes', 'tunnel_parents']
+           'orig_pkts', 'orig_ip_bytes', 'resp_pkts', 'resp_ip_bytes', 'tunnel_parents', 'label']
 data.columns = columns
-
-# Print column names to verify the dataset structure
 print("Columns in the dataset:")
 print(data.columns)
 
 # Extracting features and labels
-print("Extracting features...")
-X_text = data.drop(columns=['label', 'detailed-label'], errors='ignore').astype(str)
-y = data['label'] if 'label' in data.columns else np.zeros(data.shape[0])  # Creating dummy labels if not available
+print("Extracting features and labels...")
+X_text = data.drop(columns=['label'], errors='ignore').astype(str)
+y = data['label']
 
 # Convert text data to numerical features using CountVectorizer
 print("Converting text data to numerical features...")
 vectorizer = CountVectorizer(min_df=0.01, max_df=0.95, max_features=10000)
 X = vectorizer.fit_transform(X_text.apply(lambda x: ' '.join(x), axis=1))
 
-# Convert Scipy sparse matrix to PyTorch sparse tensor
+# Convert to PyTorch sparse tensor
 print("Converting to PyTorch sparse tensor...")
 X_coo = X.tocoo()
 values = torch.tensor(X_coo.data, dtype=torch.float32)
@@ -51,8 +49,9 @@ print("Encoding labels...")
 label_encoder = LabelEncoder()
 y = label_encoder.fit_transform(y)
 y_tensor = torch.tensor(y, dtype=torch.long).to(device)
+print("Unique labels:", np.unique(y_tensor.cpu().numpy()))
 
-# Step 3: Split the dataset into training and testing sets
+# Split the dataset
 print("Splitting the dataset into training and testing sets...")
 indices = np.arange(X_tensor.shape[0])
 train_indices, test_indices = train_test_split(indices, test_size=0.2, random_state=42)
@@ -75,7 +74,7 @@ batch_size = 32
 train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, collate_fn=custom_collate)
 test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, collate_fn=custom_collate)
 
-# Step 4: Define the neural network architecture using PyTorch
+# Define the neural network architecture
 print("Defining the neural network architecture...")
 class SimpleNN(nn.Module):
     def __init__(self):
@@ -92,14 +91,27 @@ class SimpleNN(nn.Module):
 
 model = SimpleNN().to(device)
 
-# Step 5: Define the loss function and optimizer
+# Define the loss function and optimizer
 print("Defining the loss function and optimizer...")
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.Adam(model.parameters(), lr=0.001)
 
-# Step 6: Train the model
+# Check initial predictions without training
+model.eval()  # Set the model to evaluation mode
+with torch.no_grad():
+    sample_data = X_train[:10]  # Take a sample batch from the training set
+    sample_labels = y_train[:10]
+    outputs = model(sample_data)
+    print("Sample outputs:", outputs)
+    print("Sample labels:", sample_labels)
+
+# Check the loss for initial predictions
+loss = criterion(outputs, sample_labels)
+print("Initial sample loss:", loss.item())
+
+# Train the model
 print("Training the model...")
-num_epochs = 10
+num_epochs = 3
 for epoch in range(num_epochs):
     model.train()
     for data, labels in train_loader:
@@ -111,7 +123,7 @@ for epoch in range(num_epochs):
         optimizer.step()
     print(f'Epoch {epoch+1}/{num_epochs}, Loss: {loss.item():.4f}')
 
-# Step 7: Evaluate the model
+# Evaluate the model
 print("Evaluating the model...")
 model.eval()
 correct = 0
@@ -128,6 +140,6 @@ accuracy = correct / total
 print(f'Test Accuracy: {accuracy:.4f}')
 
 # Save the model
-model_save_path = r'D:\IOT\model.pth'
+model_save_path = '/path/to/your/model.pth'  # Update your path
 torch.save(model.state_dict(), model_save_path)
 print(f"Model saved to {model_save_path}")
