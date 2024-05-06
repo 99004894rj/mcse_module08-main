@@ -16,7 +16,7 @@ print("Using device:", device)
 # Step 1: Load the dataset
 file_path = r'D:\IOT\conn.log.labelled.txt'
 print("Loading dataset...")
-data = pd.read_csv(file_path, sep='\t', comment='#', header=None, low_memory=False, dtype=str)
+data = pd.read_csv(file_path, sep='\t', comment='#', header=None, low_memory=False, dtype=str, nrows=250000)
 
 # Define column names
 columns = ['ts', 'uid', 'id.orig_h', 'id.orig_p', 'id.resp_h', 'id.resp_p', 'proto', 'service', 'duration',
