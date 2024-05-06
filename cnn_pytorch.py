@@ -126,3 +126,8 @@ with torch.no_grad():
 
 accuracy = correct / total
 print(f'Test Accuracy: {accuracy:.4f}')
+
+# Save the model
+model_save_path = r'D:\IOT\model.pth'
+torch.save(model.state_dict(), model_save_path)
+print(f"Model saved to {model_save_path}")
